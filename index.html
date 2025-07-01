@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geomatics Engineer Portfolio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turf/6.5.0/turf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 12px 24px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-btn:hover, .tab-btn.active {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.8);
+            transform: translateY(-2px);
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .skill-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .skill-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            transform: perspective(1000px) rotateX(0deg);
+            transition: transform 0.3s ease;
+        }
+
+        .skill-card:hover {
+            transform: perspective(1000px) rotateX(5deg) translateY(-5px);
+        }
+
+        .project-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .spatial-tool {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 20px;
+        }
+
+        #map {
+            height: 400px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .tool-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .control-group input, .control-group select, .control-group button {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .control-group button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .control-group button:hover {
+            background: #5a67d8;
+        }
+
+        .results {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .contact-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .contact-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .tool-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+        <img src="/images/profile.jpg" alt="Description of image" width="500" height="300">
+            <h1>ENOUGH PAUDEL </h1>
+            <p>Spatial Data Analysis | GIS Solutions | Surveying & Mapping</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="openTab(event, 'about')">About</button>
+            <button class="tab-btn" onclick="openTab(event, 'skills')">Skills</button>
+            <button class="tab-btn" onclick="openTab(event, 'projects')">Projects</button>
+            <button class="tab-btn" onclick="openTab(event, 'spatial-tool')">Spatial Analysis Tool</button>
+            <button class="tab-btn" onclick="openTab(event, 'contact')">Contact</button>
+        </div>
+
+        <div id="about" class="tab-content active">
+            <h2>About Me</h2>
+            <p>I am a dedicated Geomatics Engineer with expertise in spatial data analysis, geographic information systems (GIS), and advanced surveying techniques. My passion lies in leveraging cutting-edge technology to solve complex spatial problems and create innovative mapping solutions.</p>
+            
+            <h3>Professional Background</h3>
+            <p>With extensive experience in geospatial technologies, I specialize in:</p>
+            <ul>
+                <li>Advanced GIS analysis and modeling</li>
+                <li>Remote sensing and photogrammetry</li>
+                <li>Precision surveying and mapping</li>
+                <li>Spatial database design and management</li>
+                <li>Web-based mapping applications</li>
+                <li>Geodetic positioning and coordinate systems</li>
+            </ul>
+        </div>
+
+        <div id="skills" class="tab-content">
+            <h2>Technical Skills</h2>
+            <div class="skill-grid">
+                <div class="skill-card">
+                    <h3>GIS Software</h3>
+                    <p>ArcGIS, QGIS, PostGIS, GRASS GIS</p>
+                </div>
+                <div class="skill-card">
+                    <h3>Programming</h3>
+                    <p>Python, R, JavaScript, SQL, HTML/CSS</p>
+                </div>
+                <div class="skill-card">
+                    <h3>Surveying</h3>
+                    <p>Total Station, GPS/GNSS, UAV/Drone Mapping</p>
+                </div>
+                <div class="skill-card">
+                    <h3>Remote Sensing</h3>
+                    <p>ENVI, ERDAS, Google Earth Engine</p>
+                </div>
+                <div class="skill-card">
+                    <h3>Web Mapping</h3>
+                    <p>Leaflet, OpenLayers, Mapbox, ArcGIS API</p>
+                </div>
+                <div class="skill-card">
+                    <h3>Spatial Libraries</h3>
+                    <p>Turf.js, Shapely, GeoPandas, GDAL</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="projects" class="tab-content">
+            <h2>Featured Projects</h2>
+            
+            <div class="project-card">
+                <h3>Urban Planning GIS Analysis</h3>
+                <p>Developed comprehensive spatial analysis tools for urban development planning, including population density mapping, infrastructure analysis, and land use optimization.</p>
+                <p><strong>Technologies:</strong> ArcGIS, Python, PostGIS</p>
+            </div>
+
+            <div class="project-card">
+                <h3>Environmental Monitoring System</h3>
+                <p>Created a real-time environmental monitoring dashboard using IoT sensors and spatial analysis to track air quality, water levels, and vegetation health.</p>
+                <p><strong>Technologies:</strong> QGIS, JavaScript, Leaflet, PostgreSQL</p>
+            </div>
+
+            <div class="project-card">
+                <h3>Precision Agriculture Mapping</h3>
+                <p>Implemented drone-based mapping solutions for precision agriculture, including crop health analysis, yield prediction, and irrigation optimization.</p>
+                <p><strong>Technologies:</strong> UAV Photogrammetry, NDVI Analysis, ArcGIS Pro</p>
+            </div>
+
+            <div class="project-card">
+                <h3>Disaster Risk Assessment Platform</h3>
+                <p>Built a comprehensive platform for natural disaster risk assessment using multi-criteria analysis and machine learning algorithms.</p>
+                <p><strong>Technologies:</strong> Python, R, GRASS GIS, Web Services</p>
+            </div>
+        </div>
+
+        <div id="spatial-tool" class="tab-content">
+            <h2>Interactive Spatial Analysis Tool</h2>
+            <p>This tool demonstrates various spatial analysis capabilities using Turf.js. Click on the map to add points and perform different spatial operations.</p>
+            
+            <div class="spatial-tool">
+                <div class="tool-controls">
+                    <div class="control-group">
+                        <label>Analysis Type:</label>
+                        <select id="analysisType">
+                            <option value="buffer">Buffer Analysis</option>
+                            <option value="distance">Distance Measurement</option>
+                            <option value="area">Area Calculation</option>
+                            <option value="centroid">Centroid</option>
+                            <option value="convexHull">Convex Hull</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Buffer Distance (km):</label>
+                        <input type="number" id="bufferDistance" value="1" min="0.1" max="100" step="0.1">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Actions:</label>
+                        <button onclick="clearMap()">Clear Map</button>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Export:</label>
+                        <button onclick="exportGeoJSON()">Export GeoJSON</button>
+                    </div>
+                </div>
+
+                <div id="map"></div>
+                
+                <div id="results" class="results" style="display: none;">
+                    <h4>Analysis Results:</h4>
+                    <div id="resultContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="contact" class="tab-content">
+            <h2>Contact Information</h2>
+            <div class="contact-info">
+                <div class="contact-card">
+                    <h3>📧 Email</h3>
+                    <p>enoughpaudel2020@gmail.com</p>
+                </div>
+                <div class="contact-card">
+                    <h3>📱 Phone</h3>
+                    <p>9868988169</p>
+                </div>
+                <div class="contact-card">
+                    <h3>🌐 LinkedIn</h3>
+                    <p>https://www.linkedin.com/in/enough-paudel-539153247/</p>
+                </div>
+                <div class="contact-card">
+                    <h3>💼 GitHub</h3>
+                    <p>github.com/yourusername</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab functionality
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // Spatial Analysis Tool
+        let map;
+        let markers = [];
+        let analysisLayers = [];
+        let points = [];
+
+        function initMap() {
+            map = L.map('map').setView([27.7172, 85.3240], 13); // Kathmandu coordinates
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            map.on('click', function(e) {
+                addPoint(e.latlng);
+            });
+        }
+
+        function addPoint(latlng) {
+            const marker = L.marker([latlng.lat, latlng.lng]).addTo(map);
+            markers.push(marker);
+            
+            const point = turf.point([latlng.lng, latlng.lat]);
+            points.push(point);
+            
+            performAnalysis();
+        }
+
+        function performAnalysis() {
+            if (points.length === 0) return;
+            
+            clearAnalysisLayers();
+            
+            const analysisType = document.getElementById('analysisType').value;
+            const bufferDistance = parseFloat(document.getElementById('bufferDistance').value);
+            
+            let result = null;
+            let resultText = '';
+            
+            switch(analysisType) {
+                case 'buffer':
+                    if (points.length >= 1) {
+                        const lastPoint = points[points.length - 1];
+                        const buffered = turf.buffer(lastPoint, bufferDistance, {units: 'kilometers'});
+                        
+                        const bufferLayer = L.geoJSON(buffered, {
+                            style: {
+                                color: '#ff7800',
+                                weight: 2,
+                                opacity: 0.65,
+                                fillOpacity: 0.3
+                            }
+                        }).addTo(map);
+                        
+                        analysisLayers.push(bufferLayer);
+                        
+                        const area = turf.area(buffered);
+                        resultText = `Buffer area: ${(area / 1000000).toFixed(2)} km²`;
+                    }
+                    break;
+                    
+                case 'distance':
+                    if (points.length >= 2) {
+                        const distance = turf.distance(points[points.length-2], points[points.length-1], {units: 'kilometers'});
+                        resultText = `Distance between last two points: ${distance.toFixed(3)} km`;
+                    }
+                    break;
+                    
+                case 'area':
+                    if (points.length >= 3) {
+                        const polygon = turf.polygon([[...points.map(p => p.geometry.coordinates), points[0].geometry.coordinates]]);
+                        const area = turf.area(polygon);
+                        
+                        const polygonLayer = L.geoJSON(polygon, {
+                            style: {
+                                color: '#3388ff',
+                                weight: 2,
+                                opacity: 0.65,
+                                fillOpacity: 0.3
+                            }
+                        }).addTo(map);
+                        
+                        analysisLayers.push(polygonLayer);
+                        resultText = `Polygon area: ${(area / 1000000).toFixed(2)} km²`;
+                    }
+                    break;
+                    
+                case 'centroid':
+                    if (points.length >= 2) {
+                        const pointCollection = turf.featureCollection(points);
+                        const centroid = turf.centroid(pointCollection);
+                        
+                        const centroidMarker = L.marker([centroid.geometry.coordinates[1], centroid.geometry.coordinates[0]], {
+                            icon: L.icon({
+                                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iNiIgZmlsbD0iIzAwZmYwMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+',
+                                iconSize: [24, 24],
+                                iconAnchor: [12, 12]
+                            })
+                        }).addTo(map);
+                        
+                        analysisLayers.push(centroidMarker);
+                        resultText = `Centroid coordinates: ${centroid.geometry.coordinates[1].toFixed(6)}, ${centroid.geometry.coordinates[0].toFixed(6)}`;
+                    }
+                    break;
+                    
+                case 'convexHull':
+                    if (points.length >= 3) {
+                        const pointCollection = turf.featureCollection(points);
+                        const hull = turf.convex(pointCollection);
+                        
+                        if (hull) {
+                            const hullLayer = L.geoJSON(hull, {
+                                style: {
+                                    color: '#ff0000',
+                                    weight: 2,
+                                    opacity: 0.65,
+                                    fillOpacity: 0.2
+                                }
+                            }).addTo(map);
+                            
+                            analysisLayers.push(hullLayer);
+                            
+                            const area = turf.area(hull);
+                            resultText = `Convex hull area: ${(area / 1000000).toFixed(2)} km²`;
+                        }
+                    }
+                    break;
+            }
+            
+            if (resultText) {
+                document.getElementById('results').style.display = 'block';
+                document.getElementById('resultContent').innerHTML = resultText;
+            }
+        }
+
+        function clearAnalysisLayers() {
+            analysisLayers.forEach(layer => {
+                map.removeLayer(layer);
+            });
+            analysisLayers = [];
+        }
+
+        function clearMap() {
+            markers.forEach(marker => {
+                map.removeLayer(marker);
+            });
+            clearAnalysisLayers();
+            
+            markers = [];
+            points = [];
+            
+            document.getElementById('results').style.display = 'none';
+        }
+
+        function exportGeoJSON() {
+            if (points.length === 0) {
+                alert('No points to export');
+                return;
+            }
+            
+            const pointCollection = turf.featureCollection(points);
+            const dataStr = JSON.stringify(pointCollection, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = 'spatial_analysis_points.geojson';
+            link.click();
+        }
+
+        // Initialize map when spatial tool tab is opened
+        document.addEventListener('DOMContentLoaded', function() {
+            const spatialToolTab = document.querySelector('[onclick*="spatial-tool"]');
+            spatialToolTab.addEventListener('click', function() {
+                setTimeout(function() {
+                    if (!map) {
+                        initMap();
+                    } else {
+                        map.invalidateSize();
+                    }
+                }, 100);
+            });
+        });
+
+        // Update analysis when parameters change
+        document.getElementById('analysisType').addEventListener('change', performAnalysis);
+        document.getElementById('bufferDistance').addEventListener('input', performAnalysis);
+    </script>
+</body>
+</html>
